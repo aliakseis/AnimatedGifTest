@@ -8,10 +8,59 @@
 #include "AnimatedGifTestDlg.h"
 #include "afxdialogex.h"
 
+#include <thread>
+#include <functional>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+
+
+// Window procedure for handling messages
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (uMsg == WM_USER + 1) {
+        // Handle custom message
+        auto func = (std::function<void()>*)lParam;
+        (*func)();
+        delete func;
+        return 0;
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+HWND CreateMessageOnlyWindow() {
+    // Register the window class
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = TEXT("MessageOnlyWindow");
+
+    RegisterClass(&wc);
+
+    // Create the message-only window
+    HWND hwnd = CreateWindowEx(
+        0,                          // Optional window styles
+        TEXT("MessageOnlyWindow"),  // Window class name
+        NULL,                       // Window name
+        0,                          // Window style
+        0, 0, 0, 0,                 // Position and size (ignored)
+        HWND_MESSAGE,               // Parent window (message-only)
+        NULL,                       // Menu
+        GetModuleHandle(NULL),      // Instance handle
+        NULL                        // Additional application data
+    );
+
+    return hwnd;
+}
+
+template<typename T>
+void SendNotifyCallback(HWND messageHWND, T func)
+{
+    auto callback = new std::function<void()>(std::move(func));
+    ::SendNotifyMessage(messageHWND, WM_USER + 1, 0, (LPARAM)callback);
+}
 
 static std::unique_ptr<Gdiplus::Image> LoadFromResource(LPCTSTR pName, LPCTSTR pType, HMODULE hInst)
 {
@@ -109,6 +158,7 @@ CAnimatedGifTestDlg::CAnimatedGifTestDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_ANIMATEDGIFTEST_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+    m_messageHWND = CreateMessageOnlyWindow();
 }
 
 void CAnimatedGifTestDlg::DoDataExchange(CDataExchange* pDX)
@@ -259,12 +309,21 @@ HCURSOR CAnimatedGifTestDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
 void CAnimatedGifTestDlg::OnTimer(UINT_PTR nIDEvent)
 {
     if (nIDEvent == 1)
     {
+        std::thread th([this, currentFrame = m_currentFrame + 1] {
+            auto func = [this, currentFrame] {
+                CString text;
+                text.Format(_T("Step %d"), currentFrame);
+                SetDlgItemText(IDC_STATUS, text);
+            };
+            SendNotifyCallback(m_messageHWND, func);
+        });
+
+        th.join();
+
         m_currentFrame = (m_currentFrame + 1) % m_frameCount;
         InvalidateRect(NULL, FALSE);
         SetTimer(1, m_pFrameDelays[m_currentFrame], NULL);

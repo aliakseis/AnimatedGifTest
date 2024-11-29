@@ -59,5 +59,8 @@
     <Image Include="res\AnimatedGifTest.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\Gray_circles_rotate.gif">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

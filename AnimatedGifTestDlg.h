@@ -61,6 +61,7 @@ private:
     UINT m_frameCount{};
     UINT m_currentFrame{};
     std::vector<UINT> m_pFrameDelays;
+    HWND m_messageHWND{};
 public:
     afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

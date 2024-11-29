@@ -208,6 +208,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\AnimatedGifTest.ico" />
+    <Image Include="res\Gray_circles_rotate.gif" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
